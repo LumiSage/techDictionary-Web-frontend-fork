@@ -1,9 +1,31 @@
-frontend:
-    image: dictionary-frontend:dev
+version: '3.8'
+
+services:
+  backend:
     build:
-      context: . 
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.backend # Adjust to your backend's Dockerfile path
     ports:
-      - "80:3000" # Map host's port 8080 to the container's port 80
+      - "5000:5000"
     environment:
-      - VITE_BACKEND_URL=http://20.115.43.7:5000 # Ensure the frontend knows the backend's URL
+      - ASPNETCORE_URLS=http://*:5000
+      - ConnectionStrings__DefaultConnection=Server=db;Database=TechDictionaryDB;User ID=sa;Password=YourStrong@Passw0rd;MultipleActiveResultSets=True;TrustServerCertificate=True
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend # Adjust to your frontend's Dockerfile path
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_BACKEND_URL=http://localhost:5000
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      SA_PASSWORD: "YourStrong@Passw0rd"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
