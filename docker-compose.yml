@@ -1,3 +1,11 @@
+  frontend:
+    build:
+      context: ./frontend # Adjust to your frontend's Dockerfile path
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_BACKEND_URL=http://localhost:5000
 version: '3.8'
 
 services:
@@ -12,15 +20,6 @@ services:
       - ConnectionStrings__DefaultConnection=Server=db;Database=TechDictionaryDB;User ID=sa;Password=YourStrong@Passw0rd;MultipleActiveResultSets=True;TrustServerCertificate=True
     depends_on:
       - db
-
-  frontend:
-    build:
-      context: ./frontend # Adjust to your frontend's Dockerfile path
-      dockerfile: Dockerfile.frontend
-    ports:
-      - "8080:80"
-    environment:
-      - VITE_BACKEND_URL=http://localhost:5000
 
   db:
     image: mcr.microsoft.com/mssql/server:2019-latest
