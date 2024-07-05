@@ -1,32 +1,43 @@
-# Use an official node image as a build stage
-FROM node:18 AS build
+# Stage 1: Build the React app
+FROM node:18-alpine AS builder
 
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Copy the package.json and package-lock.json files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy the rest of your application files
+# Copy all files from the current directory to the working directory in the image
 COPY . .
 
-# Build the app
-RUN npm run build
+# Install node modules and build the React app
+RUN npm install && npm run build
 
-# Use an official nginx image to serve the app
+# Stage 2: Serve the app using Nginx
 FROM nginx:alpine
 
-# Copy the build files to the nginx html directory
-COPY --from=build /app/dist /usr/share/nginx/html
+# Set working directory to nginx asset directory
+WORKDIR /usr/share/nginx/html
 
-# Copy the nginx configuration file
-COPY nginx.conf /etc/nginx/nginx.conf
+# Remove default nginx static assets
+RUN rm -rf ./*
 
-# Expose port 80
+# Copy static assets from builder stage
+COPY --from=builder /app/dist .
+
+# Nginx configuration to work on port 80 (standard HTTP port)
+RUN echo ' \
+server { \
+  listen 80; \
+  server_name localhost; \
+  \
+  location / { \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    try_files $uri $uri/ /index.html; \
+  } \
+} \
+' > /etc/nginx/conf.d/default.conf
+
+# Expose port 80 to the outside world
 EXPOSE 80
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Containers run nginx with global directives and daemon off
+ENTRYPOINT ["nginx", "-g", "daemon off;"]
