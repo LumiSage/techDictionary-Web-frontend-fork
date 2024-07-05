@@ -1,46 +1,32 @@
-# Stage 1: Build the React app
-FROM node:18-alpine AS builder
+# Use an official node image as a build stage
+FROM node:18 AS build
 
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
-# Copy all files from the current directory to the working directory in the image
+# Copy the package.json and package-lock.json files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of your application files
 COPY . .
 
-# Copy the .env file
-COPY .env .env
+# Build the app
+RUN npm run build
 
-# Install node modules and build assets
-RUN npm install && npm run build
-
-# Stage 2: Serve the app using Nginx
+# Use an official nginx image to serve the app
 FROM nginx:alpine
 
-# Set working directory to nginx asset directory
-WORKDIR /usr/share/nginx/html
+# Copy the build files to the nginx html directory
+COPY --from=build /app/dist /usr/share/nginx/html
 
-# Remove default nginx static assets
-RUN rm -rf ./*
+# Copy the nginx configuration file
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Copy static assets from builder stage
-COPY --from=builder /app/dist .
+# Expose port 80
+EXPOSE 80
 
-# Nginx configuration to work on port 3002
-RUN echo ' \
-server { \
-  listen 3002; \
-  server_name localhost; \
-  \
-  location / { \
-    root /usr/share/nginx/html; \
-    index index.html; \
-    try_files $uri $uri/ /index.html; \
-  } \
-} \
-' > /etc/nginx/conf.d/default.conf
-
-# Expose port 3002 to the outside world
-EXPOSE 3002
-
-# Containers run nginx with global directives and daemon off
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
